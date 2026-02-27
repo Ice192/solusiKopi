@@ -3,5 +3,5 @@
         Pesan Menu
     </x-slot>
 
-    @livewire('menu-livewire')
+    @livewire('menu-livewire', ['initialTab' => request('tab')])
 </x-order-layout>

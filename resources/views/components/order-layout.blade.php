@@ -47,6 +47,7 @@
         <div class="layout-container">
             <div class="content-wrapper">
                 <div class="container-fluid flex-grow-1 container-p-y">
+                    @include('_partials.customer-topbar')
                     {{ $slot }}
                 </div>
             </div>

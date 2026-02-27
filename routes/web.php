@@ -12,6 +12,7 @@ use App\Http\Controllers\Console\{
     CategoryController,
     ProductController,
     PromotionController,
+    PaymentController,
     OrderManagementController,
     ReportingController
 };
@@ -22,22 +23,22 @@ use App\Http\Controllers\{
     OrderHistoryController,
     WelcomeController
 };
-use Illuminate\Support\Facades\Auth;
 
 // Landing
-Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
-Route::post('/search-table', [WelcomeController::class, 'searchTable'])->name('welcome.search-table');
-Route::get('/select-table/{table_code}', [WelcomeController::class, 'selectTable'])->name('welcome.select-table');
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+})->name('home');
+Route::get('/welcome', function () {
+    return redirect()->route('dashboard');
+})->name('welcome');
+Route::get('/dashboard', [DashboardController::class, '__invoke'])->name('dashboard');
+Route::post('/dashboard/search-table', [WelcomeController::class, 'searchTable'])->name('welcome.search-table');
+Route::get('/dashboard/select-table/{table_code}', [WelcomeController::class, 'selectTable'])->name('welcome.select-table');
 
 // ==================================================
 // 🛡️ Protected Routes (auth + verified)
 // ==================================================
-Route::middleware(['auth', 'verified'])->group(function () {
-
-    // Dashboard (role-based)
-    Route::get('/dashboard', [DashboardController::class, '__invoke'])
-        ->middleware('role:admin|kasir|user')
-        ->name('dashboard');
+Route::middleware(['auth'])->group(function () {
 
     // Profile
     Route::prefix('profile')->name('profile.')->group(function () {
@@ -46,8 +47,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-    // Order history (admin/kasir only)
-    Route::middleware('role:admin|kasir')->prefix('order-history')->name('order.history.')->group(function () {
+    // Order history (admin/kasir/cashier only)
+    Route::middleware('role:admin|kasir|cashier')->prefix('order-history')->name('order.history.')->group(function () {
         Route::get('/', [OrderHistoryController::class, 'index'])->name('index');
         Route::get('/{order}', [OrderHistoryController::class, 'show'])->name('show');
     });
@@ -67,8 +68,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     });
 
-    // Order Management (Admin & Kasir)
-    Route::prefix('console')->middleware('role:admin|kasir')->group(function () {
+    // Operasional Kasir (Admin, Kasir & Cashier)
+    Route::prefix('console')->middleware('role:admin|kasir|cashier')->group(function () {
+        Route::prefix('payments')->name('console.payments.')->group(function () {
+            Route::get('/', [PaymentController::class, 'index'])->name('index');
+            Route::post('/{order}/pay', [PaymentController::class, 'pay'])->name('pay');
+        });
+    });
+
+    // Order Management (Admin only)
+    Route::prefix('console')->middleware('role:admin')->group(function () {
         Route::prefix('orders')->name('console.orders.')->group(function () {
             Route::get('/', [OrderManagementController::class, 'index'])->name('index');
             Route::get('/{order}', [OrderManagementController::class, 'show'])->name('show');
@@ -77,8 +86,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/stats', [OrderManagementController::class, 'getStats'])->name('stats');
             Route::get('/export', [OrderManagementController::class, 'export'])->name('export');
         });
+    });
 
-        // Reporting (Admin & Kasir)
+    // Reporting (Admin, Kasir & Cashier)
+    Route::prefix('console')->middleware('role:admin|kasir|cashier')->group(function () {
         Route::prefix('reporting')->name('console.reporting.')->group(function () {
             Route::get('/', [ReportingController::class, 'index'])->name('index');
             Route::get('/export', [ReportingController::class, 'export'])->name('export');
@@ -103,7 +114,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
 // ==================================================
 // 🧾 Guest Order Routes
 // ==================================================
-Route::prefix('order')->name('order.')->group(function () {
+Route::prefix('dashboard/order')->name('order.')->group(function () {
     Route::get('/history', [OrderController::class, 'showOrderHistory'])->name('history');
     Route::get('/menu', [OrderController::class, 'showMenuByTableCode'])->name('menu');
     Route::get('/{table_code}', [OrderController::class, 'showMenuByTableCode'])->name('menu.with-table');
@@ -117,30 +128,22 @@ Route::prefix('order')->name('order.')->group(function () {
     Route::post('/cancel/{order_number}', [OrderController::class, 'cancelOrder'])->name('cancel');
 });
 
-// Route untuk logout dan clear session
-Route::post('/logout', function() {
-    Auth::logout();
-    session()->invalidate();
-    session()->regenerateToken();
+// Route clear session guest-order flow
+Route::post('/clear-session', function () {
     session()->flush();
-    return redirect()->route('welcome');
-})->name('logout');
-
-Route::post('/clear-session', function() {
-    session()->flush();
-    return redirect()->route('welcome');
+    return redirect()->route('dashboard');
 })->name('clear.session');
 
 // ==================================================
 // ✅ Simulasi QRIS POS (Dev/Test Only?)
 // ==================================================
-Route::prefix('order')->group(function () {
+Route::prefix('dashboard/order')->group(function () {
     Route::get('/payment/{order}', function (Order $order) {
         if ($order->payment_status === 'paid') {
-            return redirect()->route('order.success', $order)->with('info', 'Pesanan sudah dibayar.');
+            return redirect()->route('order.success.sim', $order)->with('info', 'Pesanan sudah dibayar.');
         }
         return view('order.payment_qris', compact('order'));
-    })->name('order.payment');
+    })->name('order.payment.sim');
 
     Route::post('/payment/{order}/confirm', function (Order $order) {
         $order->update(['payment_status' => 'paid', 'status' => 'preparing']);
@@ -154,9 +157,13 @@ Route::prefix('order')->group(function () {
             'paid_at' => now(),
         ]);
 
-        return redirect()->route('order.success', $order)->with('success', 'Pembayaran berhasil dikonfirmasi!');
-    })->name('order.payment.confirm');
+        return redirect()->route('order.success.sim', $order)->with('success', 'Pembayaran berhasil dikonfirmasi!');
+    })->name('order.payment.confirm.sim');
 
     // success fallback route (already defined above as named route, but this is backup)
-    Route::get('/success/{order}', [OrderController::class, 'orderSuccess'])->name('order.success');
+    Route::get('/success/{order}', [OrderController::class, 'orderSuccess'])->name('order.success.sim');
 });
+
+Route::get('/console/reporting/export-summary', [\App\Http\Controllers\Console\ReportingController::class, 'exportSummary'])
+    ->middleware(['auth', 'role:admin|kasir|cashier'])
+    ->name('console.reporting.exportSummary');

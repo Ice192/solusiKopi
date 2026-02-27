@@ -21,7 +21,7 @@
                                         ($order->status === 'ready' ? 'secondary' :
                                         ($order->status === 'preparing' ? 'warning' : 'primary'))))
                                     }}">
-                                        {{ $statusOrderIndo[$order->status] ?? ucfirst($order->status) }}
+                                        {{ $statuses[$order->status] ?? ucfirst($order->status) }}
                                     </span>
                                 </p>
                                 <p><strong>Catatan:</strong> {{ $order->note ?? '-' }}</p>
@@ -49,7 +49,9 @@
                                     <div class="border-bottom pb-2 mb-2">
                                         <p><strong>Metode:</strong> {{ $payment->method }}</p>
                                         <p><strong>Jumlah:</strong> Rp {{ number_format($payment->amount, 2, ',', '.') }}</p>
-                                        <p><strong>Status:</strong> <span class="badge bg-label-{{ $payment->status === 'completed' ? 'success' : 'warning' }}">{{ ucfirst($payment->status) }}</span></p>
+                                        <p><strong>Status:</strong> <span class="badge bg-label-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">
+                                            {{ $paymentStatuses[$order->payment_status] ?? ucfirst($order->payment_status) }}
+                                        </span></p>
                                         @if($payment->paid_at)
                                             <p><strong>Waktu Bayar:</strong> {{ $payment->paid_at->format('d F Y, H:i') }}</p>
                                         @endif
@@ -206,78 +208,10 @@
         </div>
     </div>
 
-    {{-- Footer Navigasi Mobile --}}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-bottom py-2" id="bottom-navigation">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-around w-100 mt-5">
-                <a href="{{ route('welcome') }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                    <i class="ri-home-line ri-2x"></i>
-                    <span class="fs-6">Beranda</span>
-                </a>
-                <a href="{{ route('order.menu', ['table_code' => session('current_table_code', '57')]) }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                    <i class="ri-restaurant-line ri-2x"></i>
-                    <span class="fs-6">Menu</span>
-                </a>
-                <a href="{{ route('order.history') }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                    <i class="ri-history-line ri-2x"></i>
-                    <span class="fs-6">Riwayat</span>
-                </a>
-                @auth
-                    <a href="{{ route('dashboard') }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                        <i class="ri-dashboard-line ri-2x"></i>
-                        <span class="fs-6">Dashboard</span>
-                    </a>
-                    <button class="btn btn-link text-white d-flex flex-column align-items-center" onclick="logout()">
-                        <i class="ri-logout-box-line ri-2x"></i>
-                        <span class="fs-6">Logout</span>
-                    </button>
-                @else
-                    <button class="btn btn-link text-white d-flex flex-column align-items-center" onclick="clearSession()">
-                        <i class="ri-delete-bin-line ri-2x"></i>
-                        <span class="fs-6">Hapus Sesi</span>
-                    </button>
-                @endauth
-            </div>
-        </div>
-    </nav>
 </x-order-layout>
 
 {{-- CSS untuk padding bottom dan timeline --}}
 <style>
-    @media (max-width: 768px) {
-        .container-xxl {
-            padding-bottom: 80px !important;
-        }
-        #bottom-navigation {
-            z-index: 1030;
-        }
-        .layout-wrapper {
-            padding-bottom: 80px;
-        }
-        /* Memastikan footer navigasi tampil di atas konten lain */
-        .navbar.fixed-bottom {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            z-index: 1030 !important;
-        }
-        /* CSS untuk bottom navigation dengan banyak menu */
-        #bottom-navigation .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-        #bottom-navigation .ri-2x {
-            font-size: 1.2rem !important;
-        }
-        #bottom-navigation .fs-6 {
-            font-size: 0.7rem !important;
-        }
-        #bottom-navigation .d-flex {
-            gap: 0.25rem;
-        }
-    }
-
     /* Timeline styles */
     .timeline {
         position: relative;
@@ -319,65 +253,3 @@
         font-size: 12px;
     }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-function logout() {
-    Swal.fire({
-        title: 'Konfirmasi Logout',
-        text: 'Apakah Anda yakin ingin logout?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Logout',
-        cancelButtonText: 'Batal',
-        customClass: {
-            confirmButton: 'btn btn-danger me-2',
-            cancelButton: 'btn btn-secondary'
-        },
-        buttonsStyling: false
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('{{ route("logout") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                },
-            }).then(() => {
-                window.location.href = '{{ route("welcome") }}';
-            }).catch(() => {
-                window.location.href = '{{ route("welcome") }}';
-            });
-        }
-    });
-}
-
-function clearSession() {
-    Swal.fire({
-        title: 'Konfirmasi Hapus Sesi',
-        text: 'Apakah Anda yakin ingin menghapus semua sesi?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Hapus',
-        cancelButtonText: 'Batal',
-        customClass: {
-            confirmButton: 'btn btn-danger me-2',
-            cancelButton: 'btn btn-secondary'
-        },
-        buttonsStyling: false
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('{{ route("clear.session") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                },
-            }).then(() => {
-                window.location.href = '{{ route("welcome") }}';
-            }).catch(() => {
-                window.location.href = '{{ route("welcome") }}';
-            });
-        }
-    });
-}
-</script>

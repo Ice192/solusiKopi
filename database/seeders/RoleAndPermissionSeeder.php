@@ -29,7 +29,10 @@ class RoleAndPermissionSeeder extends Seeder
         // Create roles and assign permissions
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $cashierRole = Role::firstOrCreate(['name' => 'kasir']);
+        Role::firstOrCreate(['name' => 'cashier']);
         $userRole = Role::firstOrCreate(['name' => 'user']);
+        Role::firstOrCreate(['name' => 'costumer']);
+        Role::firstOrCreate(['name' => 'customer']);
 
         // Example: Assign all existing permissions to admin
         // $adminRole->givePermissionTo(Permission::all());

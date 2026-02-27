@@ -13,7 +13,22 @@
             <div class="card-body">
                 <form action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    <input type="hidden" name="outlet_id" value="{{1}}">
+                    <div class="mb-3">
+                        <label for="outlet_id" class="form-label">Outlet</label>
+                        <select class="form-select @error('outlet_id') is-invalid @enderror" id="outlet_id"
+                            name="outlet_id" required>
+                            <option value="">Pilih Outlet</option>
+                            @foreach ($outlets as $outlet)
+                                <option value="{{ $outlet->id }}"
+                                    {{ old('outlet_id', $outlets->first()?->id) == $outlet->id ? 'selected' : '' }}>
+                                    {{ $outlet->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('outlet_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <div class="mb-3">
                         <label for="category_id" class="form-label">Kategori</label>
                         <select class="form-select @error('category_id') is-invalid @enderror" id="category_id"

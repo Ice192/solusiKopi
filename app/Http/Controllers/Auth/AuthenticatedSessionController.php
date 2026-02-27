@@ -29,7 +29,20 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        $user = $request->user();
+        $target = RouteServiceProvider::HOME;
+
+        if (method_exists($user, 'hasRole')) {
+            if ($user->hasRole('admin')) {
+                $target = route('dashboard');
+            } elseif ($user->hasRole('kasir') || $user->hasRole('cashier')) {
+                $target = route('console.orders.index');
+            } elseif ($user->hasRole('user') || $user->hasRole('costumer') || $user->hasRole('customer')) {
+                $target = route('dashboard');
+            }
+        }
+
+        return redirect()->intended($target);
     }
 
     /**
@@ -43,6 +56,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login');
     }
 }

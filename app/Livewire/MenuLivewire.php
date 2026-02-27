@@ -59,25 +59,33 @@ class MenuLivewire extends Component
         'orderNote' => 'nullable|string|max:500',
     ];
 
-    public function mount($table = null)
+    public function mount($table = null, $initialTab = null)
     {
+        if (in_array($initialTab, ['menu', 'cart', 'checkout'], true)) {
+            $this->activeTab = $initialTab;
+        }
+
         // Jika table tidak diberikan, coba ambil dari session
         if (!$table) {
             $tableCode = session('current_table_code');
-            if (!$tableCode) {
-                // Redirect ke halaman welcome jika tidak ada table code
-                $this->redirect(route('welcome'), navigate: true);
-                return;
+
+            if ($tableCode) {
+                $table = Table::where('table_code', $tableCode)
+                    ->orWhere('table_number', $tableCode)
+                    ->with('outlet')
+                    ->first();
             }
 
-            $table = Table::where('table_code', $tableCode)
-                ->orWhere('table_number', $tableCode)
-                ->with('outlet')
-                ->first();
+            if (!$table) {
+                $table = Table::where('status', '!=', 'unavailable')
+                    ->with('outlet')
+                    ->orderBy('id')
+                    ->first();
+            }
 
             if (!$table) {
-                session()->flash('error', 'Meja tidak ditemukan. Silakan pilih meja lagi.');
-                $this->redirect(route('welcome'), navigate: true);
+                session()->flash('error', 'Belum ada meja yang tersedia.');
+                $this->redirect(route('dashboard'), navigate: true);
                 return;
             }
         }
@@ -129,6 +137,12 @@ class MenuLivewire extends Component
         $this->calculateTotals();
         $this->loadGuestInfoFromSession();
         $this->loadFilterPreferences();
+
+        // Fallback non-Livewire: izinkan filter kategori via query param.
+        if (request()->has('category')) {
+            $requestedCategory = trim((string) request('category'));
+            $this->selectedCategory = $requestedCategory !== '' ? $requestedCategory : 'all';
+        }
 
         // Pastikan guest info dimuat dengan benar
         if (!Auth::check()) {
@@ -338,7 +352,6 @@ class MenuLivewire extends Component
         $this->calculateTotals();
         $this->saveCartToSession();
 
-        $this->dispatch('show-notification', type: 'success', message: 'Produk "' . ($product->name ?? 'Produk') . '" telah ditambahkan ke keranjang.');
     }
 
     public function removeFromCart(Product $product)
@@ -392,12 +405,22 @@ class MenuLivewire extends Component
         $this->calculateDiscount();
 
         $amountAfterDiscount = max(0, $this->subtotal - $this->discountAmount);
-        $this->taxAmount = $amountAfterDiscount * 0.10;
-        $this->serviceFee = $amountAfterDiscount * 0.05;
+        $this->taxAmount = $this->roundChargeAmount($amountAfterDiscount * 0.10);
+        $this->serviceFee = $this->roundChargeAmount($amountAfterDiscount * 0.05);
 
         // Pastikan total amount minimal 0.01 untuk Midtrans
         $calculatedTotal = $amountAfterDiscount + $this->taxAmount + $this->serviceFee;
         $this->totalAmount = max(0.01, $calculatedTotal);
+    }
+
+    protected function roundChargeAmount(float $amount): float
+    {
+        if ($amount <= 0) {
+            return 0;
+        }
+
+        // Bulatkan ke ribuan terdekat agar nominal tidak berakhir 500.
+        return (float) (round($amount / 1000, 0, PHP_ROUND_HALF_UP) * 1000);
     }
 
     public function applyPromo()
@@ -405,8 +428,11 @@ class MenuLivewire extends Component
         $this->appliedPromotion = null;
         $this->discountAmount = 0;
 
-        if (!empty($this->promoCode)) {
-            $promotion = Promotion::where('code', $this->promoCode)
+        $code = Str::upper(trim((string) $this->promoCode));
+        $this->promoCode = $code;
+
+        if (!empty($code)) {
+            $promotion = Promotion::whereRaw('UPPER(code) = ?', [$code])
                 ->where('status', 'active')
                 ->where(function ($query) {
                     $query->whereNull('start_date')
@@ -508,7 +534,6 @@ class MenuLivewire extends Component
                     'method' => 'cash',
                     'status' => 'pending',
                     'payment_gateway_ref' => null, // No gateway ref for cash
-                    'snap_token' => null,
                 ]);
                 return redirect()->route('order.success', ['order' => $order->order_number]);
             }
@@ -656,11 +681,12 @@ class MenuLivewire extends Component
             ->map(fn($group) => $group->all())
             ->toArray();
 
-        $this->categories = array_keys($this->productsGrouped);
+        // Pertahankan daftar kategori asli agar opsi kategori tetap tampil
+        // meskipun produk sedang difilter ke satu kategori tertentu.
 
-        // Update active category jika kategori yang dipilih tidak ada dalam hasil filter
+        // Update active category jika kategori yang dipilih memang tidak valid
         if ($this->selectedCategory !== 'all' && !in_array($this->selectedCategory, $this->categories)) {
-            Log::info('Selected category not found in filtered results, resetting to all', [
+            Log::info('Selected category invalid against available categories, resetting to all', [
                 'selectedCategory' => $this->selectedCategory,
                 'availableCategories' => $this->categories,
                 'action' => 'Reset to all categories',
@@ -753,7 +779,6 @@ class MenuLivewire extends Component
             'filterStatus' => 'Category filter applied'
         ]);
 
-        $this->dispatch('show-notification', type: 'info', message: 'Filter kategori: ' . ($category === 'all' ? 'Semua' : $category));
     }
 
     public function toggleNewProducts()
@@ -891,10 +916,6 @@ class MenuLivewire extends Component
 
     public function updatedSelectedCategory()
     {
-        // Method ini akan dipanggil saat selected category berubah
-        if ($this->selectedCategory !== 'all') {
-            $this->dispatch('show-notification', type: 'info', message: 'Kategori: ' . $this->selectedCategory);
-        }
         $this->saveFilterPreferences();
         $this->ensureFilterPreferences();
 

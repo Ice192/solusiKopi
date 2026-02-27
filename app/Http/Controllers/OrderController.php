@@ -24,22 +24,92 @@ class OrderController extends Controller
      */
     public function showMenuByTableCode(Request $request, $table_code = null)
     {
-        if($request->has('table_code')) {
-            $table_code = $request->input('table_code');
+        if ($request->filled('table_code')) {
+            $table_code = trim((string) $request->input('table_code'));
         }
 
-        // Jika table_code tidak ada, gunakan dari session atau default
         if (!$table_code) {
-            $table_code = session('current_table_code', '57');
+            $table_code = session('current_table_code');
         }
 
-        // Simpan table_code ke session
-        Session::put('current_table_code', $table_code);
+        $table = null;
+        if (!empty($table_code)) {
+            $table = Table::where(function ($query) use ($table_code) {
+                $query->where('table_number', $table_code)
+                    ->orWhere('table_code', $table_code);
+            })
+                ->where('status', '!=', 'unavailable')
+                ->with('outlet')
+                ->first();
+        }
 
-        // Ambil outlet berdasarkan table_code (untuk demo, gunakan outlet pertama)
-        $outlet = Outlet::first();
+        // Fallback: jika user belum pilih meja, ambil meja tersedia pertama
+        if (!$table) {
+            $table = Table::where('status', '!=', 'unavailable')
+                ->with('outlet')
+                ->orderBy('id')
+                ->first();
+        }
+
+        if (!$table) {
+            return redirect()->route('dashboard')->with('error', 'Belum ada meja yang tersedia.');
+        }
+
+        Session::put('current_table_code', $table->table_code ?? $table->table_number);
+
+        $outlet = $table->outlet ?? Outlet::first();
         if (!$outlet) {
-            return redirect()->route('welcome')->with('error', 'Outlet tidak ditemukan.');
+            return redirect()->route('dashboard')->with('error', 'Outlet tidak ditemukan.');
+        }
+
+        // Fallback non-Livewire: proses add/remove cart via query param.
+        // Ini membantu saat event Livewire di client tidak terpanggil.
+        $addProductId = $request->filled('add_product') ? (int) $request->input('add_product') : null;
+        $removeProductId = $request->filled('remove_product') ? (int) $request->input('remove_product') : null;
+        if ($addProductId || $removeProductId) {
+            $cartKey = 'guest_cart_' . $table->id;
+            $cart = Session::get($cartKey, []);
+            $targetProductId = $addProductId ?: $removeProductId;
+
+            $product = Product::where('outlet_id', $outlet->id)
+                ->where('is_available', true)
+                ->find($targetProductId);
+
+            if ($product) {
+                $productId = $product->id;
+                if ($addProductId) {
+                    if (isset($cart[$productId])) {
+                        $cart[$productId]['quantity']++;
+                    } else {
+                        $cart[$productId] = [
+                            'product_id' => $productId,
+                            'name' => $product->name ?? 'Produk',
+                            'price' => (float) ($product->price ?? 0),
+                            'quantity' => 1,
+                        ];
+                    }
+                }
+
+                if ($removeProductId && isset($cart[$productId])) {
+                    $cart[$productId]['quantity']--;
+                    if (($cart[$productId]['quantity'] ?? 0) <= 0) {
+                        unset($cart[$productId]);
+                    }
+                }
+
+                Session::put($cartKey, $cart);
+            }
+
+            $redirectParams = [
+                'table_code' => $table->table_code ?? $table->table_number,
+                'tab' => $request->input('tab', 'menu'),
+            ];
+
+            if ($request->filled('category')) {
+                $redirectParams['category'] = trim((string) $request->input('category'));
+            }
+
+            return redirect()->route('order.menu', $redirectParams);
         }
 
         // Ambil kategori dan produk
@@ -48,16 +118,6 @@ class OrderController extends Controller
         }])->whereHas('products', function ($query) use ($outlet) {
             $query->where('outlet_id', $outlet->id)->where('is_available', true);
         })->get();
-
-        // Ambil meja berdasarkan table_code
-        $table = Table::where('table_number', $table_code)
-            ->orWhere('table_code', $table_code)
-            ->where('status', '!=', 'unavailable')
-            ->first();
-
-        if (!$table) {
-            return redirect()->route('welcome')->with('error', 'Meja tidak ditemukan.');
-        }
 
         // Ambil promo yang aktif
         $promotions = Promotion::where('status', 'active')->get();
@@ -98,7 +158,10 @@ class OrderController extends Controller
             $orders = collect();
         }
 
-        return view('order.history.index', compact('orders'));
+        $statuses = Order::getStatuses();
+        $paymentStatuses = Order::getPaymentStatuses();
+
+        return view('order.history.index', compact('orders', 'statuses', 'paymentStatuses'));
     }
 
     /**
@@ -110,7 +173,10 @@ class OrderController extends Controller
                       ->with(['outlet', 'table', 'orderItems.product', 'promotion', 'payments'])
                       ->firstOrFail();
 
-        return view('order.history.show', compact('order'));
+        $statuses = Order::getStatuses();
+        $paymentStatuses = Order::getPaymentStatuses();
+
+        return view('order.history.show', compact('order', 'statuses', 'paymentStatuses'));
     }
 
     /**
@@ -126,7 +192,7 @@ class OrderController extends Controller
             return redirect()->route('order.success', $order->order_number)->with('error', 'Pesanan ini sudah dibayar atau bukan metode QRIS.');
         }
 
-        // Cek payment yang masih pending dan ada snap_token
+        // Cek payment QRIS yang masih pending
         $payment = $order->payments()->where('method', 'qris')->where('status', 'pending')->first();
 
         if ($payment && $payment->snap_token) {
@@ -178,14 +244,19 @@ class OrderController extends Controller
         try {
             $snapToken = \Midtrans\Snap::getSnapToken($params);
 
-            // Simpan payment baru
-            $payment = $order->payments()->create([
+            $paymentData = [
                 'amount' => $order->total_amount,
                 'method' => 'qris',
                 'status' => 'pending',
                 'payment_gateway_ref' => $midtransOrderId,
                 'snap_token' => $snapToken,
-            ]);
+            ];
+
+            if ($payment) {
+                $payment->update($paymentData);
+            } else {
+                $order->payments()->create($paymentData);
+            }
         } catch (\Exception $e) {
             $midtransError = $e->getMessage();
             Log::error('Midtrans error: ' . $e->getMessage());
@@ -335,11 +406,10 @@ class OrderController extends Controller
                       ->with(['outlet', 'table', 'orderItems.product', 'promotion'])
                       ->firstOrFail();
 
-        $order->update([
-            'payment_status' => 'paid',
-        ]);
+        $statuses = Order::getStatuses();
+        $paymentStatuses = Order::getPaymentStatuses();
 
-        return view('order.success', compact('order'));
+        return view('order.success', compact('order', 'statuses', 'paymentStatuses'));
     }
 
     /**

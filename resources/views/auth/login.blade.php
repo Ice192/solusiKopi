@@ -4,75 +4,31 @@
 
 @section('content')
     <div class="authentication-wrapper authentication-cover">
-        <!-- Logo -->
-        <a href="{{ url('/') }}" class="auth-cover-brand d-flex align-items-center gap-2">
-            <span class="app-brand-logo demo">
-                <span style="color: var(--bs-primary)">
-                    <svg width="268" height="150" viewBox="0 0 38 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.8804 20.1721 35.6746 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z"
-                            fill="currentColor" />
-                        <path
-                            d="M30.171 2.22569C29.1277 0.444187 26.8274 -0.172113 25.0332 0.849138C23.2389 1.87039 22.6302 4.14247 23.6735 5.92397L30.6134 17.7743C31.6567 19.5558 33.957 20.1721 35.7512 19.1509C37.5455 18.1296 38.1542 15.8575 37.1109 14.076L30.171 2.22569Z"
-                            fill="url(#paint0_linear_2989_100980)" fill-opacity="0.4" />
-                        <path
-                            d="M22.9676 2.22569C24.0109 0.444187 26.3112 -0.172113 28.1054 0.849138C29.8996 1.87039 30.5084 4.14247 29.4651 5.92397L22.5251 17.7743C21.4818 19.5558 19.1816 20.1721 17.3873 19.1509C15.5931 18.1296 14.9843 15.8575 16.0276 14.076L22.9676 2.22569Z"
-                            fill="currentColor" />
-                        <path
-                            d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                            fill="currentColor" />
-                        <path
-                            d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                            fill="url(#paint1_linear_2989_100980)" fill-opacity="0.4" />
-                        <path
-                            d="M7.82901 2.22569C8.87231 0.444187 11.1726 -0.172113 12.9668 0.849138C14.7611 1.87039 15.3698 4.14247 14.3265 5.92397L7.38656 17.7743C6.34325 19.5558 4.04298 20.1721 2.24875 19.1509C0.454514 18.1296 -0.154233 15.8575 0.88907 14.076L7.82901 2.22569Z"
-                            fill="currentColor" />
-                        <defs>
-                            <linearGradient id="paint0_linear_2989_100980" x1="5.36642" y1="0.849138" x2="10.532"
-                                y2="24.104" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-opacity="1" />
-                                <stop offset="1" stop-opacity="0" />
-                            </linearGradient>
-                            <linearGradient id="paint1_linear_2989_100980" x1="5.19475" y1="0.849139" x2="10.3357"
-                                y2="24.1155" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-opacity="1" />
-                                <stop offset="1" stop-opacity="0" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </span>
-            </span>
-            <span class="app-brand-text demo text-heading fw-semibold">{{ config('app.name') }}</span>
-        </a>
-        <!-- /Logo -->
-        <div class="authentication-inner row m-0">
-            <!-- /Left Section -->
-            <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center justify-content-center p-12 pb-2">
-                <img src="{{ asset('/materialize') }}/assets/img/illustrations/auth-login-illustration-light.png"
-                    class="auth-cover-illustration w-100" alt="auth-illustration"
-                    data-app-light-img="illustrations/auth-login-illustration-light.png"
-                    data-app-dark-img="illustrations/auth-login-illustration-dark.png" />
-                <img src="{{ asset('/materialize') }}/assets/img/illustrations/auth-cover-login-mask-light.png"
-                    class="authentication-image" alt="mask"
-                    data-app-light-img="illustrations/auth-cover-login-mask-light.png"
-                    data-app-dark-img="illustrations/auth-cover-login-mask-dark.png" />
-            </div>
-            <!-- /Left Section -->
-
-            <!-- Login -->
+        <div class="authentication-inner row m-0 min-vh-100">
             <div
-                class="d-flex col-12 col-lg-5 col-xl-4 align-items-center authentication-bg position-relative py-sm-12 px-12 py-6">
-                <div class="w-px-400 mx-auto pt-5 pt-lg-0">
+                class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center justify-content-center p-12 auth-hero-panel">
+                <div class="hero-copy">
+                    <p class="hero-kicker mb-2">Solusi Kopi</p>
+                    <h2 class="hero-title mb-3">PLATFORM OPERASIONAL CAFE YANG CEPAT, RAPI, DAN TERUKUR</h2>
+                </div>
+            </div>
+
+            <div class="d-flex col-12 col-lg-5 col-xl-4 align-items-center authentication-bg position-relative px-6 px-sm-12 py-8">
+                <div class="w-100 mx-auto login-panel">
+                    <a href="{{ route('dashboard') }}" class="app-brand d-flex align-items-center gap-2 mb-5">
+                        <span class="app-brand-logo demo">
+                            <i class="ri-cup-line text-primary fs-2"></i>
+                        </span>
+                        <span class="app-brand-text demo text-heading fw-semibold">Solusi Kopi</span>
+                    </a>
 
                     @if ($errors->any())
-                        <div class="alert alert-danger alert-dismissible" role="alert">
-                            <h4 class="alert-heading d-flex align-items-center">
-                                <span class="alert-icon rounded">
-                                    <i class="ri-error-warning-line ri-22px"></i>
-                                </span>
-                                Something went wrong!
-                            </h4>
-                            <ul>
+                        <div class="alert alert-danger alert-dismissible mb-4" role="alert">
+                            <h6 class="alert-heading d-flex align-items-center mb-2">
+                                <i class="ri-error-warning-line ri-20px me-2"></i>
+                                Login gagal
+                            </h6>
+                            <ul class="mb-0 ps-3">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -81,18 +37,22 @@
                         </div>
                     @endif
 
-                    <h4 class="mb-1">Welcome to {{ config('app.name') }}! 👋</h4>
-                    <p class="mb-5">Please sign-in to your account and start the adventure</p>
+                    <h4 class="mb-1 auth-heading">Masuk ke {{ config('app.name') }}</h4>
+                    {{-- <p class="mb-4 text-muted">Gunakan akun sesuai peran untuk melanjutkan.</p> --}}
 
-                    <form id="formAuthentication" class="mb-5" action="{{ route('login') }}" method="POST">
+                    {{-- <div class="role-access-list mb-5">
+                        <span class="role-pill"><i class="ri-user-line"></i> Costumer</span>
+                        <span class="role-pill"><i class="ri-user-settings-line"></i> User</span>
+                        <span class="role-pill"><i class="ri-cash-line"></i> Kasir</span>
+                    </div> --}}
+
+                    <form id="formAuthentication" class="mb-4" action="{{ route('login') }}" method="POST">
                         @csrf
 
-                        <div class="form-floating form-floating-outline mb-5">
-                            <input type="text"
-                                class="form-control @error('email')
-                            is-invalid
-                            @enderror"
-                                id="email" name="email" placeholder="Enter your email" autofocus
+                        <div class="form-floating form-floating-outline mb-4">
+                            <input type="email"
+                                class="form-control @error('email') is-invalid @enderror"
+                                id="email" name="email" placeholder="name@example.com" autofocus
                                 value="{{ old('email') }}" />
                             <label for="email">Email</label>
 
@@ -101,59 +61,149 @@
                             @enderror
                         </div>
 
-                        <div class="mb-5">
-                            <div class="form-password-toggle">
-                                <div class="input-group input-group-merge">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="password" id="password"
-                                            class="form-control @error('password')
-                                            is-invalid
-                                        @enderror"
-                                            name="password"
-                                            placeholder="{!! passwordPlainText() !!}"
-                                            aria-describedby="password" />
-                                        <label for="password">Password</label>
-                                    </div>
-                                    <span class="input-group-text cursor-pointer"><i class="ri-eye-off-line"></i></span>
-                                </div>
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        <div class="form-floating form-floating-outline mb-4">
+                            <div class="form-floating form-floating-outline password-field">
+                                <input type="password" id="password"
+                                    class="form-control password-input @error('password') is-invalid @enderror"
+                                    name="password" placeholder="Masukkan password" autocomplete="current-password" />
+                                <label for="password">Password</label>
+                                <button class="password-toggle-btn cursor-pointer" id="toggle-password"
+                                    type="button" aria-label="Tampilkan password">
+                                    <i class="ri-eye-off-line" id="toggle-password-icon"></i>
+                                </button>
                             </div>
+                            @error('password')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
-                        <div class="mb-5 d-flex justify-content-between mt-5">
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" id="remember-me" />
-                                <label class="form-check-label" for="remember-me"> Remember Me </label>
+
+                        <div class="mb-4 d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember-me" name="remember"
+                                    {{ old('remember') ? 'checked' : '' }} />
+                                <label class="form-check-label" for="remember-me">Remember me</label>
                             </div>
-                            <a href="{{ route('password.email') }}" class="float-end mb-1 mt-2">
-                                <span>Forgot Password?</span>
-                            </a>
+                            <a href="{{ route('password.request') }}">Forgot Password?</a>
                         </div>
-                        <button class="btn btn-primary d-grid w-100">Sign in</button>
+
+                        <button type="submit" class="btn btn-primary d-grid w-100">Sign in</button>
                     </form>
 
-                    <p class="text-center">
-                        <span>New on our platform?</span>
-                        <a href="{{ route('register') }}">
-                            <span>Create an account</span>
-                        </a>
+                    <p class="text-center mb-0">
+                        <span>Belum punya akun?</span>
+                        <a href="{{ route('register') }}" class="fw-medium">Daftar sekarang</a>
                     </p>
-
-                    {{-- <div class="mt-4 text-center">
-                        <p class="text-gray-600">Atau login dengan:</p>
-                        <div class="flex justify-center gap-4 mt-2">
-                            <a href="{{ route('auth.google') }}" class="btn btn-outline-danger">
-                                Login dengan Google
-                            </a>
-                            <a href="{{ route('auth.facebook') }}" class="btn btn-outline-primary">
-                                Login dengan Facebook
-                            </a>
-                        </div>
-                    </div> --}}
                 </div>
             </div>
-            <!-- /Login -->
         </div>
     </div>
 @endsection
+
+@push('styles')
+    <style>
+        .authentication-wrapper {
+            background: radial-gradient(circle at 8% 10%, rgba(198, 246, 226, 0.65), transparent 42%),
+                radial-gradient(circle at 92% 14%, rgba(255, 229, 198, 0.65), transparent 44%),
+                #f5f7fb;
+        }
+
+        .auth-hero-panel {
+            background: linear-gradient(135deg, #093545 0%, #0f6f8a 100%);
+            color: #fff;
+        }
+
+        .hero-copy {
+            max-width: 480px;
+        }
+
+        .hero-title {
+            color: #f5fbff;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .hero-kicker {
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #d6f6ff;
+        }
+
+        .auth-heading {
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .login-panel {
+            max-width: 410px;
+        }
+
+        .role-access-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #0f3d57;
+            background: #e2f2ff;
+            border: 1px solid #c7e6ff;
+            border-radius: 999px;
+            padding: 0.35rem 0.7rem;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-input {
+            padding-right: 3rem;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #6c757d;
+            z-index: 5;
+            width: 2rem;
+            height: 2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle-btn:hover {
+            color: var(--bs-primary);
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.getElementById('toggle-password');
+            const toggleIcon = document.getElementById('toggle-password-icon');
+
+            if (!passwordInput || !toggleButton || !toggleIcon) {
+                return;
+            }
+
+            toggleButton.addEventListener('click', function() {
+                const hidden = passwordInput.type === 'password';
+                passwordInput.type = hidden ? 'text' : 'password';
+                toggleIcon.classList.toggle('ri-eye-line', hidden);
+                toggleIcon.classList.toggle('ri-eye-off-line', !hidden);
+                toggleButton.setAttribute('aria-label', hidden ? 'Sembunyikan password' : 'Tampilkan password');
+            });
+        });
+    </script>
+@endpush

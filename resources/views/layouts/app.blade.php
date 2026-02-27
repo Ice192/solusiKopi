@@ -12,7 +12,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-    <title>@yield('title') | {{ config('app.name') }}</title>
+    <title>☕ @yield('title') | {{ config('app.name') }}</title>
 
     <meta name="description"
         content="
@@ -71,6 +71,56 @@
 
     @livewireStyles
     @stack('styles')
+    <style>
+        :root {
+            --brand-surface: #f4f7fb;
+            --brand-accent: #0f6f8a;
+            --brand-accent-soft: #d9eef4;
+        }
+
+        body {
+            background: radial-gradient(circle at 4% 8%, rgba(181, 225, 238, 0.35), transparent 30%),
+                radial-gradient(circle at 92% 2%, rgba(255, 225, 199, 0.3), transparent 30%),
+                var(--brand-surface);
+        }
+
+        .layout-page {
+            background: transparent;
+        }
+
+        .bg-navbar-theme {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid rgba(15, 111, 138, 0.08);
+        }
+
+        .layout-menu {
+            border-right: 1px solid rgba(15, 111, 138, 0.08);
+        }
+
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .btn-primary {
+            background-color: var(--brand-accent);
+            border-color: var(--brand-accent);
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background-color: #0c5b72;
+            border-color: #0c5b72;
+        }
+
+        .page-title {
+            color: #0f172a;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+    </style>
 </head>
 
 <body>
@@ -82,41 +132,7 @@
                 <div class="app-brand demo">
                     <a href="{{ url('/dashboard') }}" class="app-brand-link">
                         <span class="app-brand-logo demo">
-                            <span style="color: var(--bs-primary)">
-                                <svg width="268" height="150" viewBox="0 0 38 20" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.8804 20.1721 35.6746 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z"
-                                        fill="currentColor" />
-                                    <path
-                                        d="M30.171 2.22569C29.1277 0.444187 26.8274 -0.172113 25.0332 0.849138C23.2389 1.87039 22.6302 4.14247 23.6735 5.92397L30.6134 17.7743C31.6567 19.5558 33.957 20.1721 35.7512 19.1509C37.5455 18.1296 38.1542 15.8575 37.1109 14.076L30.171 2.22569Z"
-                                        fill="url(#paint0_linear_2989_100980)" fill-opacity="0.4" />
-                                    <path
-                                        d="M22.9676 2.22569C24.0109 0.444187 26.3112 -0.172113 28.1054 0.849138C29.8996 1.87039 30.5084 4.14247 29.4651 5.92397L22.5251 17.7743C21.4818 19.5558 19.1816 20.1721 17.3873 19.1509C15.5931 18.1296 14.9843 15.8575 16.0276 14.076L22.9676 2.22569Z"
-                                        fill="currentColor" />
-                                    <path
-                                        d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                                        fill="currentColor" />
-                                    <path
-                                        d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                                        fill="url(#paint1_linear_2989_100980)" fill-opacity="0.4" />
-                                    <path
-                                        d="M7.82901 2.22569C8.87231 0.444187 11.1726 -0.172113 12.9668 0.849138C14.7611 1.87039 15.3698 4.14247 14.3265 5.92397L7.38656 17.7743C6.34325 19.5558 4.04298 20.1721 2.24875 19.1509C0.454514 18.1296 -0.154233 15.8575 0.88907 14.076L7.82901 2.22569Z"
-                                        fill="currentColor" />
-                                    <defs>
-                                        <linearGradient id="paint0_linear_2989_100980" x1="5.36642" y1="0.849138"
-                                            x2="10.532" y2="24.104" gradientUnits="userSpaceOnUse">
-                                            <stop offset="0" stop-opacity="1" />
-                                            <stop offset="1" stop-opacity="0" />
-                                        </linearGradient>
-                                        <linearGradient id="paint1_linear_2989_100980" x1="5.19475" y1="0.849139"
-                                            x2="10.3357" y2="24.1155" gradientUnits="userSpaceOnUse">
-                                            <stop offset="0" stop-opacity="1" />
-                                            <stop offset="1" stop-opacity="0" />
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
-                            </span>
+                            <i class="ri-cup-line text-primary fs-2"></i>
                         </span>
                         <span class="app-brand-text demo menu-text fw-semibold ms-2">{{ config('app.name') }}</span>
                     </a>
@@ -179,7 +195,7 @@
                                                     <span
                                                         class="fw-medium d-block small">{{ $user ? $user->name : 'John Doe' }}</span>
                                                         <small class="text-muted">
-                                                            {{ optional($user->roles->first())->name ?? 'John Doe' }}
+                                                            {{ strtoupper(optional($user->roles->first())->name ?? 'user') }}
                                                         </small>
                                                 </div>
                                             </div>
@@ -189,20 +205,12 @@
                                         <div class="dropdown-divider"></div>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                                            <i class="ri-user-3-line ri-22px me-3"></i><span class="align-middle">My
-                                                Profile</span>
-                                        </a>
-                                    </li>
-                                    <div class="dropdown-divider"></div>
-                                    <li>
                                         <form action="{{ route('logout') }}" method="post" class="d-none"
                                             id="form-logout">
                                             @csrf
                                         </form>
                                         <div class="d-grid px-4 pt-2 pb-1">
                                             <a class="btn btn-sm btn-danger d-flex" href="{{ route('logout') }}"
-                                                target="_blank"
                                                 onclick="event.preventDefault(); $('#form-logout').submit();">
                                                 <small class="align-middle">Logout</small>
                                                 <i class="ri-logout-box-r-line ms-2 ri-16px"></i>
@@ -229,12 +237,11 @@
                             <div
                                 class="footer-container d-flex align-items-center justify-content-between py-4 flex-md-row flex-column">
                                 <div class="text-body mb-2 mb-md-0">
-                                    © Copyright
+                                    � Copyright
                                     <script>
                                         document.write(new Date().getFullYear());
                                     </script>
-                                    , made with <span class="text-danger"><i
-                                            class="tf-icons ri-heart-fill"></i></span>
+                                    
                                 </div>
                             </div>
                         </div>
@@ -305,3 +312,4 @@
 </body>
 
 </html>
+

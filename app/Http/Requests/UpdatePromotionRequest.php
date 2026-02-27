@@ -22,7 +22,10 @@ class UpdatePromotionRequest extends FormRequest
      */
     public function rules(): array
     {
+        $promotionId = $this->route('promotion')?->id ?? $this->route('promotion');
+
         return [
+            'code' => ['required', 'string', 'max:50', Rule::unique('promotions', 'code')->ignore($promotionId)],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'discount_type' => ['required', 'string', Rule::in(['percentage', 'fixed'])],

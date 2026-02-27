@@ -33,9 +33,10 @@ class PromotionController extends Controller
      */
     public function store(StorePromotionRequest $request)
     {
-        Promotion::create($request->validated()+[
-            'code' => Str::random(8),
-        ]);
+        $payload = $request->validated();
+        $payload['code'] = Str::upper($payload['code']);
+
+        Promotion::create($payload);
 
         return redirect()->route('promotions.index')->with('success', 'Promotion created successfully.');
     }
@@ -61,7 +62,10 @@ class PromotionController extends Controller
      */
     public function update(UpdatePromotionRequest $request, Promotion $promotion)
     {
-        $promotion->update($request->validated());
+        $payload = $request->validated();
+        $payload['code'] = Str::upper($payload['code']);
+
+        $promotion->update($payload);
 
         return redirect()->route('promotions.index')->with('success', 'Promotion updated successfully.');
     }

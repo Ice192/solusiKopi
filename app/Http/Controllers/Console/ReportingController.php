@@ -4,129 +4,77 @@ namespace App\Http\Controllers\Console;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Product;
-use App\Models\Outlet;
-use App\Models\Table;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Services\ReportingService;
 
 class ReportingController extends Controller
 {
+    protected $reportingService;
+
+    public function __construct(ReportingService $reportingService)
+    {
+        $this->reportingService = $reportingService;
+    }
+
     /**
      * Display reporting dashboard
      */
     public function index(Request $request)
     {
+        if ($this->isCashierOnlyUser($request)) {
+            return $this->indexForCashier($request);
+        }
+
         $dateFrom = $request->get('date_from', Carbon::today()->subDays(30));
         $dateTo = $request->get('date_to', Carbon::today());
         $outletId = $request->get('outlet_id');
+        $recapMode = $request->get('recap_mode', 'daily');
 
-        // Base query
-        $baseQuery = Order::query();
+        // Ambil data dari service
+        $revenueStats = $this->reportingService->getSummaryStats($dateFrom, $dateTo, $outletId);
+        $recap = $this->reportingService->getRecapData($dateFrom, $dateTo, $outletId, $recapMode);
+        $chart = $this->reportingService->getChartData($dateFrom, $dateTo, $outletId);
+        $topProducts = $this->reportingService->getTopProducts($dateFrom, $dateTo, $outletId);
+        $outletPerformance = $this->reportingService->getOutletPerformance($dateFrom, $dateTo);
+        // TODO: tambahkan pemanggilan service untuk statistik lain jika perlu
 
-        if ($dateFrom || $dateTo) {
-            $from = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
-            $to   = $dateTo   ? Carbon::parse($dateTo)->endOfDay()   : Carbon::now()->endOfDay();
-
-            $baseQuery->whereBetween('ordered_at', [$from, $to]);
-        }
-
-        if ($outletId) {
-            $baseQuery->where('outlet_id', $outletId);
-        }
-
-        // Revenue statistics
-        $revenueStats = [
-            'total_revenue' => $baseQuery->clone()->where('payment_status', 'paid')->sum('total_amount') ?? 0,
-            'total_orders' => $baseQuery->clone()->count(),
-            'paid_orders' => $baseQuery->clone()->where('payment_status', 'paid')->count(),
-            'pending_orders' => $baseQuery->clone()->where('payment_status', 'pending')->count(),
-            'average_order_value' => $baseQuery->clone()->where('payment_status', 'paid')->avg('total_amount') ?? 0,
+        // Data lain yang belum di-service (sementara, akan dipindah)
+        $orderStatusStats = [];
+        $paymentMethodStats = [];
+        $dailyRevenue = collect();
+        $tableUtilization = collect();
+        $weeklyRecap = collect();
+        $monthlyRecap = collect();
+        $foodDrinkRecap = collect();
+        $dates = collect();
+        $recapTabs = [
+            'daily' => 'Harian',
+            'weekly' => 'Mingguan',
+            'monthly' => 'Bulanan',
         ];
 
-        // Order status statistics
-        $orderStatusStats = $baseQuery->clone()
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
+        // Data recap dari service
+        $recapData = $recap['recapData'] ?? collect();
+        $periods = $recap['periods'] ?? collect();
 
-        // Payment method statistics
-        $paymentMethodStats = $baseQuery->clone()->where('payment_status', 'paid')
-            ->select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(total_amount) as total'))
-            ->groupBy('payment_method')
-            ->get();
-
-        // Top selling products
-        $topProducts = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereBetween('orders.ordered_at', [
-                $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay(),
-                $dateTo ? Carbon::parse($dateTo)->endOfDay() : Carbon::now()->endOfDay()
-            ])
-            ->where('orders.payment_status', 'paid')
-            ->when($outletId, function($query) use ($outletId) {
-                return $query->where('orders.outlet_id', $outletId);
-            })
-            ->select(
-                'products.name',
-                DB::raw('SUM(order_items.quantity) as total_quantity'),
-                DB::raw('SUM(order_items.quantity * order_items.price_at_order) as total_revenue')
-            )
-            ->groupBy('products.id', 'products.name')
-            ->orderBy('total_quantity', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Daily revenue chart data
-        $dailyRevenue = $baseQuery->clone()->where('payment_status', 'paid')
-            ->select(
-                DB::raw('DATE(ordered_at) as date'),
-                DB::raw('SUM(total_amount) as revenue'),
-                DB::raw('COUNT(*) as orders_count')
-            )
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
-
-        // Generate sample data if no real data exists
-        if ($dailyRevenue->isEmpty()) {
-            $dailyRevenue = $this->generateSampleDailyRevenue($dateFrom, $dateTo);
+        // Untuk AJAX partial
+        if ($request->ajax()) {
+            return view('console.reporting.partials.recap-area', compact(
+                'revenueStats',
+                'weeklyRecap',
+                'monthlyRecap',
+                'foodDrinkRecap',
+                'recapTabs',
+                'recapMode',
+                'recapData',
+                'dateFrom',
+                'dateTo',
+                'dates',
+                'outletId',
+            ));
         }
-
-        // Outlet performance
-        $outletPerformance = Outlet::withCount(['orders' => function($query) use ($dateFrom, $dateTo) {
-            $from = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
-            $to = $dateTo ? Carbon::parse($dateTo)->endOfDay() : Carbon::now()->endOfDay();
-            $query->whereBetween('ordered_at', [$from, $to]);
-        }])
-        ->withSum(['orders' => function($query) use ($dateFrom, $dateTo) {
-            $from = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
-            $to = $dateTo ? Carbon::parse($dateTo)->endOfDay() : Carbon::now()->endOfDay();
-            $query->whereBetween('ordered_at', [$from, $to])
-                  ->where('payment_status', 'paid');
-        }], 'total_amount')
-        ->get();
-
-        // Table utilization
-        $tableUtilization = Table::withCount(['orders' => function($query) use ($dateFrom, $dateTo) {
-            $from = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
-            $to = $dateTo ? Carbon::parse($dateTo)->endOfDay() : Carbon::now()->endOfDay();
-            $query->whereBetween('ordered_at', [$from, $to]);
-        }])
-        ->withSum(['orders' => function($query) use ($dateFrom, $dateTo) {
-            $from = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
-            $to = $dateTo ? Carbon::parse($dateTo)->endOfDay() : Carbon::now()->endOfDay();
-            $query->whereBetween('ordered_at', [$from, $to])
-                  ->where('payment_status', 'paid');
-        }], 'total_amount')
-        ->get();
-
-        $dateFrom = Carbon::parse($dateFrom);
-        $dateTo = Carbon::parse($dateTo);
-
         return view('console.reporting.index', compact(
             'revenueStats',
             'orderStatusStats',
@@ -137,7 +85,52 @@ class ReportingController extends Controller
             'tableUtilization',
             'dateFrom',
             'dateTo',
-            'outletId'
+            'outletId',
+            'recapTabs',
+            'recapMode',
+            'recapData',
+            'dates',
+            'weeklyRecap',
+            'monthlyRecap',
+            'foodDrinkRecap',
+        ));
+    }
+
+    private function indexForCashier(Request $request)
+    {
+        $date = $request->filled('date')
+            ? Carbon::parse($request->get('date'))
+            : Carbon::today();
+        $dateFrom = $date->copy()->startOfDay();
+        $dateTo = $date->copy()->endOfDay();
+        $outletId = $request->get('outlet_id');
+
+        $revenueStats = $this->reportingService->getSummaryStats($dateFrom, $dateTo, $outletId);
+
+        $orders = Order::with(['table', 'outlet'])
+            ->whereBetween('ordered_at', [$dateFrom, $dateTo])
+            ->when($outletId, fn($query) => $query->where('outlet_id', $outletId))
+            ->orderByDesc('ordered_at')
+            ->get();
+
+        $cashPaid = $orders->where('payment_status', 'paid')
+            ->where('payment_method', 'cash')
+            ->count();
+        $qrisPaid = $orders->where('payment_status', 'paid')
+            ->where('payment_method', 'QRIS')
+            ->count();
+        $pendingPayments = $orders->where('payment_status', 'pending')->count();
+
+        return view('console.reporting.cashier', compact(
+            'date',
+            'dateFrom',
+            'dateTo',
+            'outletId',
+            'revenueStats',
+            'orders',
+            'cashPaid',
+            'qrisPaid',
+            'pendingPayments',
         ));
     }
 
@@ -329,6 +322,104 @@ class ReportingController extends Controller
     }
 
     /**
+     * Export summary report (weekly, monthly, foodDrink, all)
+     */
+    public function exportSummary(Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->subDays(30));
+        $dateTo = $request->get('date_to', Carbon::today());
+        $outletId = $request->get('outlet_id');
+        $type = $request->get('type', 'all');
+
+        $filename = 'summary_report_' . $type . '_' . date('Y-m-d_H-i-s') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($dateFrom, $dateTo, $outletId, $type) {
+            $file = fopen('php://output', 'w');
+            if ($type === 'weekly' || $type === 'all') {
+                fputcsv($file, ['Rekap Penjualan per Minggu']);
+                fputcsv($file, ['Minggu', 'Omzet', 'Transaksi']);
+                $start = Carbon::parse($dateFrom)->startOfWeek();
+                $end = Carbon::parse($dateTo);
+                while ($start <= $end) {
+                    $weekStart = $start->copy();
+                    $weekEnd = $start->copy()->endOfWeek();
+                    $omzet = Order::where('payment_status', 'paid')
+                        ->whereBetween('ordered_at', [$weekStart, $weekEnd])
+                        ->when($outletId, fn($q) => $q->where('outlet_id', $outletId))
+                        ->sum('total_amount');
+                    $orders = Order::whereBetween('ordered_at', [$weekStart, $weekEnd])
+                        ->when($outletId, fn($q) => $q->where('outlet_id', $outletId))
+                        ->count();
+                    fputcsv($file, [
+                        $weekStart->format('d M') . ' - ' . $weekEnd->format('d M'),
+                        $omzet,
+                        $orders
+                    ]);
+                    $start->addWeek();
+                }
+                fputcsv($file, []);
+            }
+            if ($type === 'monthly' || $type === 'all') {
+                fputcsv($file, ['Rekap Penjualan per Bulan']);
+                fputcsv($file, ['Bulan', 'Omzet', 'Transaksi']);
+                $start = Carbon::parse($dateFrom)->startOfMonth();
+                $end = Carbon::parse($dateTo);
+                while ($start <= $end) {
+                    $monthStart = $start->copy();
+                    $monthEnd = $start->copy()->endOfMonth();
+                    $omzet = Order::where('payment_status', 'paid')
+                        ->whereBetween('ordered_at', [$monthStart, $monthEnd])
+                        ->when($outletId, fn($q) => $q->where('outlet_id', $outletId))
+                        ->sum('total_amount');
+                    $orders = Order::whereBetween('ordered_at', [$monthStart, $monthEnd])
+                        ->when($outletId, fn($q) => $q->where('outlet_id', $outletId))
+                        ->count();
+                    fputcsv($file, [
+                        $monthStart->format('M Y'),
+                        $omzet,
+                        $orders
+                    ]);
+                    $start->addMonth();
+                }
+                fputcsv($file, []);
+            }
+            if ($type === 'foodDrink' || $type === 'all') {
+                fputcsv($file, ['Rincian Penjualan Makanan & Minuman']);
+                fputcsv($file, ['Kategori', 'Qty Terjual', 'Total Omzet']);
+                $rows = DB::table('order_items')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->join('categories', 'products.category_id', '=', 'categories.id')
+                    ->whereBetween('orders.ordered_at', [$dateFrom, $dateTo])
+                    ->where('orders.payment_status', 'paid')
+                    ->when($outletId, fn($q) => $q->where('orders.outlet_id', $outletId))
+                    ->select(
+                        'categories.name as category',
+                        DB::raw('SUM(order_items.quantity) as qty'),
+                        DB::raw('SUM(order_items.quantity * order_items.price_at_order) as omzet')
+                    )
+                    ->groupBy('categories.id', 'categories.name')
+                    ->orderByDesc('qty')
+                    ->get();
+                foreach ($rows as $row) {
+                    fputcsv($file, [
+                        $row->category,
+                        $row->qty,
+                        $row->omzet
+                    ]);
+                }
+                fputcsv($file, []);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Get real-time statistics for AJAX
      */
     public function getRealTimeStats()
@@ -345,5 +436,19 @@ class ReportingController extends Controller
         ];
 
         return response()->json($stats);
+    }
+
+    private function isCashierOnlyUser(Request $request): bool
+    {
+        $user = $request->user();
+        if (!$user || !method_exists($user, 'hasAnyRole')) {
+            return false;
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['kasir', 'cashier']);
     }
 }

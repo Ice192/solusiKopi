@@ -9,7 +9,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Order Management</h4>
-                    <div>
+                    <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('console.orders.index') }}" class="btn btn-outline-secondary btn-sm">
                             <i class="ri-refresh-line me-1"></i>Reset Filters
                         </a>
@@ -21,8 +21,8 @@
                 <div class="card-body">
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-primary text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-primary text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -36,8 +36,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-warning text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-warning text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -51,8 +51,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-info text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-info text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -66,8 +66,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-secondary text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-secondary text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -81,8 +81,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-success text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-success text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -96,8 +96,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6 mb-3">
-                            <div class="card bg-outline-primary text-white">
+                        <div class="col-lg-3 col-md-4 col-6 mb-3">
+                            <div class="card bg-dark text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -116,7 +116,7 @@
                     <!-- Table Status -->
                     <div class="row mb-4">
                         <div class="col-lg-6 col-md-6 col-12 mb-3">
-                            <div class="card bg-success text-white">
+                            <div class="card bg-success text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -131,7 +131,7 @@
                             </div>
                         </div>
                         <div class="col-lg-6 col-md-6 col-12 mb-3">
-                            <div class="card bg-warning text-white">
+                            <div class="card bg-warning text-white h-100 border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
@@ -218,7 +218,7 @@
 
                     <!-- Orders Table -->
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-hover align-middle">
                             <thead>
                                 <tr>
                                     <th>Order #</th>

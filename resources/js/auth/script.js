@@ -6,8 +6,14 @@ document.addEventListener("DOMContentLoaded", function () {
             const formElement = document.querySelector(formSelector);
             if (!formElement) return;
 
+            const activeFields = Object.fromEntries(
+                Object.entries(fieldsConfig).filter(([fieldName]) => {
+                    return formElement.querySelector(`[name="${fieldName}"]`) !== null;
+                })
+            );
+
             const formValidationInstance = FormValidation.formValidation(formElement, {
-                fields: fieldsConfig,
+                fields: activeFields,
                 plugins: {
                     trigger: new FormValidation.plugins.Trigger(),
                     bootstrap5: new FormValidation.plugins.Bootstrap5({
@@ -79,13 +85,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             return document.querySelector('#formAuthentication [name="password"]').value;
                         },
                         message: "The password and its confirmation do not match",
-                    },
-                },
-            },
-            terms: {
-                validators: {
-                    notEmpty: {
-                        message: "Please agree to the terms & conditions",
                     },
                 },
             },

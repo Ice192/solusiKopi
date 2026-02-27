@@ -31,7 +31,7 @@ class ProductController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('image')) {
-            $data['image'] = handleUpload('image', 'products/images');
+            $data['image_url'] = handleUpload('image', 'products/images');
         }
 
         Product::create($data);
@@ -56,11 +56,11 @@ class ProductController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('image')) {
-            $data['image'] = handleUpload('image', 'products/images', $product->image);
+            $data['image_url'] = handleUpload('image', 'products/images', $product->image_url);
         } elseif (isset($data['remove_image']) && $data['remove_image'] == 1) {
-            if ($product->image) {
-                deleteFileIfExist(public_path($product->image));
-                $data['image'] = null;
+            if ($product->image_url) {
+                deleteFileIfExist(public_path($product->image_url));
+                $data['image_url'] = null;
             }
         }
 
@@ -71,8 +71,8 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        if ($product->image) {
-            deleteFileIfExist(public_path($product->image));
+        if ($product->image_url) {
+            deleteFileIfExist(public_path($product->image_url));
         }
         $product->delete();
 

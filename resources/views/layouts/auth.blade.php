@@ -9,7 +9,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-    <title>@yield('title') | {{ config('app.name') }}</title>
+    <title>☕ @yield('title') | {{ config('app.name') }}</title>
 
     <meta name="description"
         content="
@@ -89,7 +89,6 @@
     <script src="{{ asset('/materialize') }}/assets/js/main.js"></script>
 
     <!-- Page JS -->
-    @vite('resources/js/auth/script.js')
 
     <script src="{{ asset('/materialize') }}/assets/vendor/libs/toastr/toastr.js"></script>
     <script>

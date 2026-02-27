@@ -1,15 +1,10 @@
 <div>
     @if ($ready)
-        {{-- Header untuk informasi meja dan outlet --}}
-        <div class="card mb-4 d-none d-md-block"> {{-- Sembunyikan di mobile --}}
-            <div class="card-body">
-                <h3 class="mb-0">Pesan dari Meja: {{ $table->table_number }} ({{ $outlet->name }})</h3>
+        @if ($activeTab === 'menu')
+            <div class="d-md-none text-center mb-4">
+                <h4 class="mb-0">Meja {{ $table->table_number }} ({{ $outlet->name }})</h4>
             </div>
-        </div>
-
-        <div class="d-md-none text-center mb-4"> {{-- Tampilkan hanya di mobile --}}
-            <h4 class="mb-0">Meja {{ $table->table_number }} ({{ $outlet->name }})</h4>
-        </div>
+        @endif
 
         {{-- Toast Notifications --}}
         <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
@@ -23,22 +18,25 @@
 
                 {{-- Filter Kategori --}}
                 @if(count($categories) > 1)
-                    <div class="mb-4 overflow-auto filter-scroll" style="white-space:nowrap;">
-                        <button wire:click="filterByCategory('all')"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-75"
-                            class="btn btn-sm me-2 mb-2 px-3 py-1 rounded-pill @if($selectedCategory === 'all') btn-primary text-white @else btn-outline-primary @endif"
-                            style="transition:all .2s;min-width:90px;">
-                            <i class="ri-apps-line me-1"></i>Semua
+                    <div class="mb-4 overflow-auto filter-scroll category-filter-wrap" style="white-space:nowrap;">
+                        <button type="button"
+                            wire:click.prevent.stop="filterByCategory('all')"
+                            wire:key="category-all"
+                            wire:loading.class="is-loading"
+                            class="btn btn-sm me-2 mb-2 rounded-pill category-filter-btn @if($selectedCategory === 'all') is-active @endif"
+                            aria-pressed="{{ $selectedCategory === 'all' ? 'true' : 'false' }}">
+                            <span class="category-filter-icon"><i class="ri-apps-line"></i></span>
+                            <span>Semua</span>
                             <div wire:loading wire:target="selectedCategory" class="spinner-border spinner-border-sm ms-1" style="width:12px;height:12px;"></div>
                         </button>
                         @foreach($categories as $cat)
-                            <button wire:click="filterByCategory('{{ addslashes($cat) }}')"
-                                wire:loading.attr="disabled"
-                                wire:loading.class="opacity-75"
-                                class="btn btn-sm me-2 mb-2 px-3 py-1 rounded-pill @if($selectedCategory === $cat) btn-primary text-white @else btn-outline-primary @endif"
-                                style="transition:all .2s;min-width:90px;">
-                                {{ $cat }}
+                            <button type="button"
+                                wire:click.prevent.stop="filterByCategory('{{ addslashes($cat) }}')"
+                                wire:key="category-{{ md5($cat) }}"
+                                wire:loading.class="is-loading"
+                                class="btn btn-sm me-2 mb-2 rounded-pill category-filter-btn @if($selectedCategory === $cat) is-active @endif"
+                                aria-pressed="{{ $selectedCategory === $cat ? 'true' : 'false' }}">
+                                <span>{{ $cat }}</span>
                                 <div wire:loading wire:target="selectedCategory" class="spinner-border spinner-border-sm ms-1" style="width:12px;height:12px;"></div>
                             </button>
                         @endforeach
@@ -61,7 +59,7 @@
                                         <span class="badge bg-info me-1">Pencarian: "{{ $searchTerm }}"</span>
                                     @endif
                                 </div>
-                                <button wire:click="resetFilters"
+                                <button type="button" wire:click="resetFilters"
                                     wire:loading.attr="disabled"
                                     wire:loading.class="opacity-75"
                                     class="btn btn-sm btn-outline-info">
@@ -183,8 +181,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="card-footer bg-transparent border-0 pt-0 pb-2 px-2 d-flex justify-content-center align-items-center">
-                                                            <button wire:click="removeFromCartById({{ $product->id }})"
-                                                                wire:loading.attr="disabled"
+                                                            <button type="button" wire:click.prevent.stop="removeFromCartById({{ $product->id }})"
                                                                 wire:loading.class="opacity-50"
                                                                 class="btn btn-light border btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center product-btn-minus me-1"
                                                                 style="width:24px;height:24px;@if(!($cart[$product->id]['quantity'] ?? 0))opacity:0.5;pointer-events:none;@endif"
@@ -193,8 +190,7 @@
                                                                 <div wire:loading wire:target="removeFromCartById({{ $product->id }})" class="spinner-border spinner-border-sm position-absolute" style="width:12px;height:12px;"></div>
                                                             </button>
                                                             <span class="mx-1 small" style="font-size:0.8rem;">{{ $cart[$product->id]['quantity'] ?? 0 }}</span>
-                                                            <button wire:click="addToCartById({{ $product->id }})"
-                                                                wire:loading.attr="disabled"
+                                                            <button type="button" wire:click.prevent.stop="addToCartById({{ $product->id }})"
                                                                 wire:loading.class="opacity-50"
                                                                 class="btn btn-success btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center shadow product-btn-plus ms-1"
                                                                 style="width:24px;height:24px;">
@@ -219,6 +215,29 @@
                         @endif
                     </div>
                 </div>
+
+                @if (!empty($cart))
+                    <div class="menu-sticky-cart-summary-wrap">
+                        <div class="menu-sticky-cart-summary-btn">
+                            <button type="button"
+                                wire:click.prevent.stop="setActiveTab('cart')"
+                                class="menu-sticky-cart-summary-link">
+                                <span class="menu-sticky-cart-summary-title">
+                                    <i class="ri-file-list-3-line me-2"></i>Lihat Rincian Belanja
+                                </span>
+                                <span class="menu-sticky-cart-summary-meta">
+                                    {{ collect($cart)->sum(fn($item) => (int) ($item['quantity'] ?? 0)) }} item
+                                    | Rp {{ number_format($subtotal, 0, ',', '.') }}
+                                </span>
+                            </button>
+                            <button type="button"
+                                wire:click.prevent.stop="setActiveTab('checkout')"
+                                class="menu-sticky-cart-checkout-link">
+                                <i class="ri-arrow-right-up-line me-1"></i>Bayar
+                            </button>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- Tab Keranjang --}}
@@ -227,12 +246,34 @@
                     <h5 class="card-header">Keranjang Anda</h5>
                     <div class="card-body">
                         @if (empty($cart))
-                            <div class="text-center py-4">
-                                <i class="ri-shopping-cart-line text-muted" style="font-size: 3rem;"></i>
-                                <p class="mt-3 text-muted">Keranjang kosong.</p>
-                                <button wire:click="setActiveTab('menu')" class="btn btn-primary">
-                                    <i class="ri-restaurant-line me-2"></i>Lihat Menu
-                                </button>
+                            <div class="cart-empty-state">
+                                <div class="cart-empty-card">
+                                    <span class="cart-empty-highlight"></span>
+                                    <div class="cart-empty-icon-wrap">
+                                        <i class="ri-shopping-bag-3-line"></i>
+                                    </div>
+                                    <h5 class="cart-empty-title mb-2">Keranjang Masih Kosong</h5>
+                                    <p class="cart-empty-subtitle mb-4">
+                                        Belum ada pesanan yang ditambahkan. Pilih menu favorit Anda untuk mulai checkout.
+                                    </p>
+
+                                    <div class="cart-empty-pills mb-4">
+                                        <span class="cart-empty-pill"><i class="ri-cup-line me-1"></i>Fresh Brew</span>
+                                        <span class="cart-empty-pill"><i class="ri-fire-line me-1"></i>Best Seller</span>
+                                        <span class="cart-empty-pill"><i class="ri-timer-line me-1"></i>Fast Service</span>
+                                    </div>
+
+                                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                                        <button type="button"
+                                            wire:click.prevent.stop="setActiveTab('menu')"
+                                            class="btn btn-primary px-4">
+                                            <i class="ri-restaurant-line me-1"></i>Jelajahi Menu
+                                        </button>
+                                        <a href="{{ route('order.history') }}" class="btn btn-outline-secondary px-4">
+                                            <i class="ri-history-line me-1"></i>Lihat Riwayat
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         @else
                             <ul class="list-group list-group-flush mb-3">
@@ -247,8 +288,7 @@
                                                     <small class="text-muted">Rp {{ number_format($item['price'], 0, ',', '.') }}</small>
                                                 </div>
                                                 <div class="d-flex align-items-center">
-                                                    <button wire:click="removeFromCartById({{ $item['product_id'] }})"
-                                                        wire:loading.attr="disabled"
+                                                    <button type="button" wire:click.prevent.stop="removeFromCartById({{ $item['product_id'] }})"
                                                         wire:loading.class="opacity-50"
                                                         class="btn btn-sm btn-outline-danger me-2" style="width:32px;height:32px;padding:0;">
                                                         <i class="ri-subtract-line"></i>
@@ -264,8 +304,7 @@
                                                         max="99"
                                                         value="{{ $item['quantity'] }}">
                                                     <div wire:loading wire:target="updateQuantity" class="spinner-border spinner-border-sm position-absolute" style="width:12px;height:12px;"></div>
-                                                    <button wire:click="addToCartById({{ $item['product_id'] }})"
-                                                        wire:loading.attr="disabled"
+                                                    <button type="button" wire:click.prevent.stop="addToCartById({{ $item['product_id'] }})"
                                                         wire:loading.class="opacity-50"
                                                         class="btn btn-sm btn-outline-success ms-2" style="width:32px;height:32px;padding:0;">
                                                         <i class="ri-add-line"></i>
@@ -289,8 +328,7 @@
                                                     </div>
                                                     <div class="col-4">
                                                         <div class="d-flex align-items-center justify-content-end">
-                                                            <button wire:click="removeFromCartById({{ $item['product_id'] }})"
-                                                                wire:loading.attr="disabled"
+                                                            <button type="button" wire:click.prevent.stop="removeFromCartById({{ $item['product_id'] }})"
                                                                 wire:loading.class="opacity-50"
                                                                 class="btn btn-sm btn-outline-danger me-1" style="width:28px;height:28px;padding:0;font-size:0.7rem;">
                                                                 <i class="ri-subtract-line"></i>
@@ -306,8 +344,7 @@
                                                                 max="99"
                                                                 value="{{ $item['quantity'] }}">
                                                             <div wire:loading wire:target="updateQuantity" class="spinner-border spinner-border-sm position-absolute" style="width:10px;height:10px;"></div>
-                                                            <button wire:click="addToCartById({{ $item['product_id'] }})"
-                                                                wire:loading.attr="disabled"
+                                                            <button type="button" wire:click.prevent.stop="addToCartById({{ $item['product_id'] }})"
                                                                 wire:loading.class="opacity-50"
                                                                 class="btn btn-sm btn-outline-success ms-1" style="width:28px;height:28px;padding:0;font-size:0.7rem;">
                                                                 <i class="ri-add-line"></i>
@@ -349,8 +386,8 @@
                                     <span>Rp {{ number_format($totalAmount, 0, ',', '.') }}</span>
                                 </div>
                                 <div class="d-grid mt-4">
-                                    <button wire:click="setActiveTab('checkout')"
-                                        wire:loading.attr="disabled"
+                                    <button type="button"
+                                        wire:click.prevent.stop="setActiveTab('checkout')"
                                         wire:loading.class="opacity-75"
                                         class="btn btn-primary btn-lg"
                                         @if (empty($cart)) disabled @endif>
@@ -547,103 +584,30 @@
                     </div>
                 </div>
 
-                {{-- Tombol Submit --}}
-                <div class="d-grid mt-4 mb-5">
-                    <button wire:click="submitOrder"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-75"
-                        class="btn btn-success btn-lg"
-                        @if (empty($cart)) disabled @endif>
-                        <span wire:loading.remove wire:target="submitOrder">
-                            <i class="ri-send-plane-line me-2"></i>
-                            Submit Pesanan (Rp {{ number_format($totalAmount, 0, ',', '.') }})
-                        </span>
-                        <span wire:loading wire:target="submitOrder">
-                            <div class="spinner-border spinner-border-sm me-2" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            Memproses Pesanan...
-                        </span>
-                    </button>
+                {{-- Tombol Bayar Sticky --}}
+                <div class="checkout-sticky-submit-wrap mt-4 mb-5">
+                    <div class="checkout-sticky-submit">
+                        <button type="button" wire:click="submitOrder"
+                            wire:loading.attr="disabled"
+                            wire:loading.class="is-loading"
+                            class="btn btn-lg checkout-sticky-submit-btn"
+                            @if (empty($cart)) disabled @endif>
+                            <span wire:loading.remove wire:target="submitOrder">
+                                <i class="ri-bank-card-line me-2"></i>
+                                Bayar Sekarang (Rp {{ number_format($totalAmount, 0, ',', '.') }})
+                            </span>
+                            <span wire:loading wire:target="submitOrder">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Memproses Pembayaran...
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {{-- Footer Navigasi Mobile --}}
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-bottom py-2" id="bottom-navigation">
-            <div class="container-fluid">
-                <div class="d-flex justify-content-around w-100 mt-5">
-                    <button class="btn btn-link text-white d-flex flex-column align-items-center"
-                        wire:click="setActiveTab('menu')"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-75">
-                        <i class="ri-restaurant-line ri-2x"></i>
-                        <span class="fs-6">
-                            <span wire:loading.remove wire:target="setActiveTab('menu')">Menu</span>
-                            <span wire:loading wire:target="setActiveTab('menu')">Loading...</span>
-                        </span>
-                    </button>
-                    <button class="btn btn-link text-white d-flex flex-column align-items-center position-relative"
-                        wire:click="setActiveTab('cart')"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-75">
-                        <i class="ri-shopping-cart-2-line ri-2x"></i>
-                        <span class="fs-6">
-                            <span wire:loading.remove wire:target="setActiveTab('cart')">Keranjang</span>
-                            <span wire:loading wire:target="setActiveTab('cart')">Loading...</span>
-                        </span>
-                        @if (count($cart) > 0)
-                            <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
-                                {{ count($cart) }}
-                                <span class="visually-hidden">produk di keranjang</span>
-                            </span>
-                        @endif
-                    </button>
-                    <button class="btn btn-link text-white d-flex flex-column align-items-center"
-                        wire:click="setActiveTab('checkout')"
-                        @if (empty($cart)) disabled @endif
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-75">
-                        <i class="ri-money-dollar-circle-line ri-2x"></i>
-                        <span class="fs-6">
-                            <span wire:loading.remove wire:target="setActiveTab('checkout')">Bayar</span>
-                            <span wire:loading wire:target="setActiveTab('checkout')">Loading...</span>
-                        </span>
-                    </button>
-                    <a href="{{ route('order.history') }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                        <i class="ri-history-line ri-2x"></i>
-                        <span class="fs-6">Riwayat</span>
-                    </a>
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="btn btn-link text-white d-flex flex-column align-items-center">
-                            <i class="ri-dashboard-line ri-2x"></i>
-                            <span class="fs-6">Dashboard</span>
-                        </a>
-                        <button class="btn btn-link text-white d-flex flex-column align-items-center"
-                            wire:click="logout"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-75">
-                            <i class="ri-logout-box-line ri-2x"></i>
-                            <span class="fs-6">
-                                <span wire:loading.remove wire:target="logout">Logout</span>
-                                <span wire:loading wire:target="logout">Loading...</span>
-                            </span>
-                        </button>
-                    @else
-                        <button class="btn btn-link text-white d-flex flex-column align-items-center"
-                            wire:click="clearSession"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-75">
-                            <i class="ri-delete-bin-line ri-2x"></i>
-                            <span class="fs-6">
-                                <span wire:loading.remove wire:target="clearSession">Hapus Sesi</span>
-                                <span wire:loading wire:target="clearSession">Loading...</span>
-                            </span>
-                        </button>
-                    @endauth
-                </div>
-            </div>
-        </nav>
     @endif
 </div>
 
@@ -663,6 +627,95 @@
 .product-btn-plus:active, .product-btn-minus:active {
     transform: scale(0.9);
     transition: transform .1s ease;
+}
+
+/* Premium empty state for cart */
+.cart-empty-state {
+    padding: 1.25rem 0.25rem;
+}
+
+.cart-empty-card {
+    position: relative;
+    overflow: hidden;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2.25rem 1.5rem;
+    text-align: center;
+    border-radius: 20px;
+    border: 1px solid rgba(15, 111, 138, 0.16);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(241, 249, 252, 0.92));
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+}
+
+.cart-empty-highlight {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -52px;
+    top: -58px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(15, 111, 138, 0.16), transparent 68%);
+}
+
+.cart-empty-icon-wrap {
+    width: 78px;
+    height: 78px;
+    border-radius: 22px;
+    margin: 0 auto 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f6f8a;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #e8f6fb, #f4fbff);
+    border: 1px solid #cbe7f1;
+}
+
+.cart-empty-title {
+    color: #0f172a;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+.cart-empty-subtitle {
+    color: #64748b;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cart-empty-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.cart-empty-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #0f4f66;
+    background: #eef7fb;
+    border: 1px solid #d5e9f1;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+}
+
+@media (max-width: 767.98px) {
+    .cart-empty-card {
+        padding: 1.75rem 1rem;
+        border-radius: 16px;
+    }
+
+    .cart-empty-title {
+        font-size: 1.05rem;
+    }
+
+    .cart-empty-subtitle {
+        font-size: 0.85rem;
+    }
 }
 
 /* Animasi untuk kategori section */
@@ -685,32 +738,235 @@
     to { transform: rotate(360deg); }
 }
 
-/* Filter button hover effects */
-.filter-scroll .btn {
-    transition: all 0.2s ease;
+/* Category filter chips */
+.category-filter-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    position: sticky;
+    top: var(--menu-filter-sticky-top, 82px);
+    z-index: 1030;
+    padding: 0.35rem 0.25rem 0.2rem;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    border-radius: 14px;
 }
 
-.filter-scroll .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.category-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 96px;
+    min-height: 36px;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid #b7d8e2;
+    background: #fff;
+    color: #0f6f8a;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* CSS untuk bottom navigation dengan banyak menu */
+.category-filter-btn:hover {
+    transform: translateY(-2px);
+    border-color: #87c2d2;
+    background: #f0fbff;
+    color: #0b5a70;
+    box-shadow: 0 8px 18px rgba(15, 111, 138, 0.15);
+}
+
+.category-filter-btn:focus-visible {
+    outline: 2px solid rgba(15, 111, 138, 0.35);
+    outline-offset: 2px;
+}
+
+.category-filter-btn .category-filter-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(15, 111, 138, 0.1);
+}
+
+.category-filter-btn.is-active {
+    color: #fff;
+    border-color: #0f6f8a;
+    background: linear-gradient(135deg, #0f6f8a, #1696b6);
+    box-shadow: 0 10px 20px rgba(15, 111, 138, 0.28);
+    animation: category-active-in 0.22s ease;
+}
+
+.category-filter-btn.is-active .category-filter-icon {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.category-filter-btn.is-loading {
+    opacity: 0.85;
+}
+
+/* Sticky cart summary button on menu tab */
+.menu-sticky-cart-summary-wrap {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 1038;
+    margin-top: 0.85rem;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.15rem);
+}
+
+.menu-sticky-cart-summary-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    border: 1px solid rgba(15, 111, 138, 0.2);
+    border-radius: 14px;
+    padding: 0.45rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 22px rgba(15, 111, 138, 0.2);
+}
+
+.menu-sticky-cart-summary-link {
+    flex: 1 1 auto;
+    display: block;
+    border: 0;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(135deg, #0f6f8a, #1b88a8);
+    box-shadow: 0 8px 18px rgba(15, 111, 138, 0.26);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.menu-sticky-cart-summary-link:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.02);
+    box-shadow: 0 12px 24px rgba(15, 111, 138, 0.3);
+    color: #fff;
+}
+
+.menu-sticky-cart-summary-link:focus-visible,
+.menu-sticky-cart-checkout-link:focus-visible {
+    outline: 3px solid rgba(22, 164, 195, 0.32);
+    outline-offset: 2px;
+}
+
+.menu-sticky-cart-checkout-link {
+    flex: 0 0 auto;
+    align-self: stretch;
+    min-width: 100px;
+    border-radius: 10px;
+    border: 1px solid #0f6f8a;
+    padding: 0 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 700;
+    color: #0f6f8a;
+    background: #e8f7fb;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-sticky-cart-checkout-link:hover {
+    transform: translateY(-2px);
+    color: #0b5a70;
+    background: #d9f1f8;
+    box-shadow: 0 8px 18px rgba(15, 111, 138, 0.18);
+}
+
+.menu-sticky-cart-summary-title {
+    display: block;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+}
+
+.menu-sticky-cart-summary-meta {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    white-space: nowrap;
+}
+
+/* Sticky checkout payment button */
+.checkout-sticky-submit-wrap {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 1040;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.15rem);
+}
+
+.checkout-sticky-submit {
+    border: 1px solid rgba(15, 111, 138, 0.18);
+    border-radius: 16px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+.checkout-sticky-submit-btn {
+    width: 100%;
+    min-height: 52px;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15px;
+    color: #fff;
+    background: linear-gradient(135deg, #0f6f8a, #16a4c3);
+    box-shadow: 0 10px 20px rgba(15, 111, 138, 0.28);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.checkout-sticky-submit-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.02);
+    box-shadow: 0 14px 30px rgba(15, 111, 138, 0.34);
+}
+
+.checkout-sticky-submit-btn:active {
+    transform: translateY(0);
+}
+
+.checkout-sticky-submit-btn:focus-visible {
+    outline: 3px solid rgba(22, 164, 195, 0.35);
+    outline-offset: 2px;
+}
+
+.checkout-sticky-submit-btn.is-loading {
+    opacity: 0.92;
+}
+
+.checkout-sticky-submit-btn:disabled {
+    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+@keyframes category-active-in {
+    0% {
+        transform: scale(0.96);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 @media (max-width: 768px) {
-    #bottom-navigation .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-    #bottom-navigation .ri-2x {
-        font-size: 1.2rem !important;
-    }
-    #bottom-navigation .fs-6 {
-        font-size: 0.7rem !important;
-    }
-    #bottom-navigation .d-flex {
-        gap: 0.25rem;
-    }
-
     /* Responsive untuk card produk */
     .product-card {
         min-height: 180px !important;
@@ -718,6 +974,62 @@
     .product-card .card-img-top {
         min-height: 80px !important;
         max-height: 100px !important;
+    }
+
+    .category-filter-wrap {
+        gap: 0.3rem;
+        top: var(--menu-filter-sticky-top, 76px);
+    }
+
+    .category-filter-btn {
+        min-width: 84px;
+        min-height: 34px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.76rem;
+    }
+
+    .checkout-sticky-submit-wrap {
+        bottom: 0.5rem;
+    }
+
+    .menu-sticky-cart-summary-wrap {
+        bottom: 0.5rem;
+    }
+
+    .menu-sticky-cart-summary-btn {
+        padding: 0.4rem;
+        border-radius: 12px;
+        gap: 0.4rem;
+    }
+
+    .menu-sticky-cart-summary-link {
+        padding: 0.5rem 0.62rem;
+    }
+
+    .menu-sticky-cart-checkout-link {
+        min-width: 88px;
+        font-size: 0.82rem;
+        padding: 0 0.55rem;
+    }
+
+    .menu-sticky-cart-summary-title {
+        font-size: 0.86rem;
+        white-space: normal;
+    }
+
+    .menu-sticky-cart-summary-meta {
+        font-size: 0.78rem;
+        white-space: normal;
+    }
+
+    .checkout-sticky-submit {
+        border-radius: 14px;
+        padding: 0.45rem;
+    }
+
+    .checkout-sticky-submit-btn {
+        min-height: 48px;
+        font-size: 0.92rem;
     }
 }
 
@@ -834,17 +1146,7 @@
     max-width: 100%;
 }
 
-/* Cart empty state */
-.cart-empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-}
-
-.cart-empty-state i {
-    color: #6c757d;
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
+/* Cart empty state is defined in premium styles section */
 
 /* Cart item improvements */
 .list-group-item {
@@ -908,19 +1210,6 @@
         font-size: 0.75rem;
     }
 
-    /* Bottom navigation optimization */
-    #bottom-navigation {
-        padding: 0.5rem 0;
-    }
-
-    #bottom-navigation .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.7rem;
-    }
-
-    #bottom-navigation .ri-2x {
-        font-size: 1.1rem !important;
-    }
 }
 
 /* Prevent horizontal scroll globally */
@@ -1185,12 +1474,39 @@ body {
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const updateCategoryStickyOffset = () => {
+        const root = document.documentElement;
+        const topbarWrap = document.querySelector('.customer-topbar-wrap');
+
+        if (!topbarWrap) {
+            root.style.setProperty('--menu-filter-sticky-top', '82px');
+            return;
+        }
+
+        const topbarStyles = window.getComputedStyle(topbarWrap);
+        const topOffset = parseFloat(topbarStyles.top || '0') || 0;
+        const topbarHeight = topbarWrap.getBoundingClientRect().height || topbarWrap.offsetHeight || 0;
+        const stickyTop = Math.ceil(topOffset + topbarHeight + 8); // small breathing space below topbar
+
+        root.style.setProperty('--menu-filter-sticky-top', `${stickyTop}px`);
+    };
+
+    updateCategoryStickyOffset();
+    window.addEventListener('resize', updateCategoryStickyOffset);
+    window.addEventListener('orientationchange', updateCategoryStickyOffset);
+
     // Handle Livewire notifications
     Livewire.on('show-notification', (event) => {
-        const { type, message } = event;
+        const payload = event?.detail ?? event ?? {};
+        const type = payload.type ?? 'info';
+        const message = payload.message ?? '';
+
+        if (!message) {
+            return;
+        }
 
         // Use toastr if available, otherwise use custom toast
-        if (typeof toastr !== 'undefined') {
+        if (typeof toastr !== 'undefined' && typeof toastr[type] === 'function') {
             toastr[type](message);
         } else {
             // Create custom notification
@@ -1331,6 +1647,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 new bootstrap.Tooltip(tooltipTriggerEl);
             }
         });
+
+        updateCategoryStickyOffset();
     });
 
     // Add filter debugging
@@ -1387,7 +1705,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Optimize buttons
-            document.querySelectorAll('.btn-sm').forEach(btn => {
+            document.querySelectorAll('.btn-sm:not(.category-filter-btn)').forEach(btn => {
                 btn.style.fontSize = '0.75rem';
                 btn.style.padding = '0.25rem 0.5rem';
             });
@@ -1635,7 +1953,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-fill when switching to checkout tab
     document.addEventListener('livewire:initialized', () => {
         Livewire.on('tab-changed', (event) => {
-            if (event.detail.tab === 'checkout') {
+            const payload = event?.detail ?? event ?? {};
+            if (payload.tab === 'checkout') {
                 setTimeout(() => {
                     autoFillGuestInfo();
                 }, 500);
@@ -1644,13 +1963,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Listen for guest info loaded event
         Livewire.on('guest-info-loaded', (event) => {
-            const { name, email, phone } = event.detail;
+            const payload = event?.detail ?? event ?? {};
+            const { name, email, phone } = payload;
             fillGuestInfo(name, email, phone);
         });
 
         // Listen for tab changes
         Livewire.on('tab-changed', (event) => {
-            if (event.detail.tab === 'checkout') {
+            const payload = event?.detail ?? event ?? {};
+            if (payload.tab === 'checkout') {
                 setTimeout(() => {
                     autoFillGuestInfo();
                 }, 500);
@@ -1660,3 +1981,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
